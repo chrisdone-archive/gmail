@@ -1,3 +1,6 @@
+# TODO: Change the input arguments to be just an S-expression
+# object. Then I can pass in labels and search at the same time.
+
 #!/usr/bin/python
 
 from sexpdata import loads, dumps
