@@ -1,72 +1,79 @@
-# TODO: Change the input arguments to be just an S-expression
-# object. Then I can pass in labels and search at the same time.
+# Copyright (c) 2015 Chris Done. All rights reserved.
 
-#!/usr/bin/python
+# This file is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+
+# This file is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from sexpdata import loads, dumps
-
 import httplib2
 import sys
-
 from apiclient.discovery import build
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run
 
+# Gmail API boilerplate
 
-# Path to the client_secret.json file downloaded from the Developer Console
 CLIENT_SECRET_FILE = 'client_secret.json'
-
-# Check https://developers.google.com/gmail/api/auth/scopes for all available scopes
 OAUTH_SCOPE = 'https://www.googleapis.com/auth/gmail.modify'
-
-# Location of the credentials storage file
 STORAGE = Storage('gmail.storage')
-
-# Start the OAuth flow to retrieve credentials
 flow = flow_from_clientsecrets(CLIENT_SECRET_FILE, scope=OAUTH_SCOPE)
 http = httplib2.Http()
-
-# Try to retrieve credentials from storage or run the flow to generate them
 credentials = STORAGE.get()
 if credentials is None or credentials.invalid:
   credentials = run(flow, STORAGE, http=http)
-
-# Authorize the httplib2.Http object with our credentials
 http = credentials.authorize(http)
-
-# Build the Gmail service from discovery
 gmail_service = build('gmail', 'v1', http=http)
 
-if sys.argv[1] == 'drafts':
-  if sys.argv[2] == 'list':
-    # Retrieve a page of threads
+# Workaround Python's ineptitude
+
+def print_unicode(string):
+  print string.encode('utf8', 'replace')
+
+# Command dispatching code
+
+args = loads(sys.argv[1])
+
+if args[0] == 'threads':
+  if args[1] == 'list':
+    labels = args[2]
+    q = args[3]
+    threads = gmail_service.users().threads().list(userId='me',labelIds=labels,q=q).execute()
+    print_unicode(dumps(threads))
+  if args[1] == 'get':
+    id = args[2]
+    format = args[3]
+    thread = gmail_service.users().threads().get(userId='me',id=id,format=format).execute()
+    print_unicode(dumps(thread))
+if args[0] == 'messages':
+  if args[1] == 'list':
+    labels = args[2]
+    q = args[3]
+    messages = gmail_service.users().messages().list(userId='me',labelIds=labels,q=q).execute()
+    print_unicode(dumps(messages))
+  if args[1] == 'get':
+    id = args[2]
+    format = args[3]
+    message = gmail_service.users().messages().get(userId='me',id=id,format=format).execute()
+    print_unicode(dumps(message))
+if args[0] == 'drafts':
+  if args[1] == 'list':
     drafts = gmail_service.users().drafts().list(userId='me').execute()
-    print dumps(drafts);
-if sys.argv[1] == 'labels':
-  if sys.argv[2] == 'list':
-    # Retrieve a page of threads
+    print_unicode(dumps(drafts))
+if args[0] == 'profile':
+  if args[1] == 'get':
+    profile = gmail_service.users().getProfile(userId='me').execute()
+    print_unicode(dumps(profile))
+if args[0] == 'labels':
+  if args[1] == 'list':
     labels = gmail_service.users().labels().list(userId='me').execute()
-    print dumps(labels);
-if sys.argv[1] == 'profile':
-  # Retrieve a page of threads
-  profile = gmail_service.users().getProfile(userId='me').execute()
-  print dumps(profile);
-if sys.argv[1] == 'threads':
-  if sys.argv[2] == 'list':
-    # Retrieve a page of threads
-    threads = gmail_service.users().threads().list(userId='me',labelIds=["INBOX","UNREAD"]).execute()
-    print dumps(threads);
-  if sys.argv[2] == 'get':
-    # Retrieve a page of threads
-    thread = gmail_service.users().threads().get(userId='me',id=sys.argv[3],format='metadata').execute()
-    print dumps(thread);
-if sys.argv[1] == 'messages':
-  if sys.argv[2] == 'list':
-    # Retrieve a page of messages
-    messages = gmail_service.users().messages().list(userId='me',labelIds="INBOX").execute()
-    print dumps(messages);
-  if sys.argv[2] == 'get':
-    # Retrieve a page of messages
-    message = gmail_service.users().messages().get(userId='me',id=sys.argv[3],format='full').execute()
-    print dumps(message);
+    print_unicode(dumps(labels))
