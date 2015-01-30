@@ -28,7 +28,7 @@
   :group 'gmail)
 
 (defcustom gmail-search-mode-date-length
-  13
+  18
   "Length of the date string."
   :type 'integer
   :group 'gmail)
@@ -129,8 +129,9 @@
 (defun gmail-search-mode-open-thread ()
   "Open the thread at point."
   (interactive)
-  (let ((thread-id (get-text-property (point) 'gmail-search-mode-thread-id)))
-    (switch-to-buffer (get-buffer-create (format "*gmail-thread:%s*" thread-id)))
+  (let ((thread-id (get-text-property (point) 'gmail-search-mode-thread-id))
+        (subject (get-text-property (point) 'gmail-search-mode-thread-subject)))
+    (switch-to-buffer (get-buffer-create (format "*gmail-thread:%s:%s*" thread-id subject)))
     (gmail-thread-mode)
     (setq gmail-thread-mode-thread-id thread-id)
     (gmail-thread-mode-revert)))
@@ -239,7 +240,9 @@
                            (format "(%d replies)" replies))))
                    "\n\n"))
           (point (point)))
-      (insert (propertize view 'gmail-search-mode-thread-id (plist-get thread :id)))
+      (insert (propertize view
+                          'gmail-search-mode-thread-id (plist-get thread :id)
+                          'gmail-search-mode-thread-subject subject))
       (let ((o (make-overlay point (point))))
         (if unread
             (overlay-put o 'face 'gmail-search-mode-unread-face)

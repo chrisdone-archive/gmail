@@ -123,29 +123,23 @@
 
 (defun gmail-thread-mode-plaintext (payload)
   "Get the plain text from a message payload."
-  (if (string-prefix-p "text/plain" (plist-get payload :mimeType))
+  (if (plist-get payload :parts)
+      (mapconcat #'gmail-thread-mode-plaintext-part
+                 (plist-get payload :parts)
+                 "")
+    (gmail-thread-mode-plaintext-part payload)))
+
+(defun gmail-thread-mode-plaintext-part (part)
+  (let ((mime-type (plist-get part :mimeType)))
+    (cond
+     ((string-prefix-p "text/plain" mime-type)
       (gmail-encoding-decode-base64
-       (plist-get (plist-get payload :body) :data))
-    (let ((plain (car (remove-if-not (lambda (part)
-                                       (string-prefix-p "text/plain" (plist-get part :mimeType)))
-                                     (plist-get payload :parts)))))
-      (if plain
-          (gmail-encoding-decode-base64
-           (plist-get (plist-get plain :body) :data))
-        (let ((multipart (car (remove-if-not (lambda (part)
-                                               (string-prefix-p "multipart/alternative" (plist-get part :mimeType)))
-                                             (plist-get payload :parts)))))
-          (if multipart
-              (let ((plain (car (remove-if-not (lambda (part)
-                                                 (string-prefix-p "text/plain" (plist-get part :mimeType)))
-                                               (plist-get multipart :parts)))))
-                (if plain
-                    (gmail-encoding-decode-base64 (plist-get (plist-get plain :body) :data))
-                  (progn (message "Unable to find a plain/text field from this email, even in multi-parts: %S" payload)
-                         "")))
-            (progn (message "Unable to find a plain/text field from this email: %S" payload)
-                   "")))))
-    ))
+       (plist-get (plist-get part :body) :data)))
+     ((string-prefix-p "multipart/" mime-type)
+      (gmail-thread-mode-plaintext part))
+     ((string-prefix-p "text/html" mime-type)
+      "")
+     (t ""))))
 
 (defun gmail-thread-mode-fill-lines (start end)
   "Fill lines longer than 80 columns, to make it more readable."
