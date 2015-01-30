@@ -63,7 +63,9 @@
                           'face (if unread
                                     'gmail-search-mode-subject-unread-face
                                   'gmail-search-mode-subject-face))
-              " "
+              (if (> (length subject) gmail-search-mode-date-length)
+                  "\n"
+                " ")
               (propertize
                (format-time-string gmail-search-mode-date-format date)
                'face 'gmail-search-mode-date-face)
@@ -116,7 +118,7 @@
       (let ((start (point)))
         (insert (propertize (gmail-thread-mode-plaintext payload)
                             'face 'gmail-search-mode-body-face)
-                "\n\n")
+                "\n")
         (decode-coding-region start (point)
                               'utf-8)
         (gmail-thread-mode-fill-lines start (point))))))
