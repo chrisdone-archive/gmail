@@ -84,7 +84,8 @@
                              (list "threads" "get" id (symbol-name format)))
                            ids))))
     (cl-loop for thread in threads
-             collect (gmail-cache-put (concat "thread-" (plist-get thread :id))
+             do (sit-for 0.1)
+             collect (gmail-cache-put (format "thread-%s-%S" (plist-get thread :id) format)
                                       thread))))
 
 (defun gmail-helper-drafts-list ()

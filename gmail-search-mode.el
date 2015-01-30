@@ -137,18 +137,18 @@
       (redisplay t)
       (let ((ids (remove-if
                   (lambda (id)
-                    (gmail-cache-p (concat "message-" id)))
+                    (gmail-cache-p (format "thread-%s-%S" id 'full)))
                   (mapcar (lambda (thread-result)
                             (plist-get thread-result :id))
                           threads))))
         (unless (null ids)
-          (gmail-helper-threads-get-many ids 'metadata)))
+          (gmail-helper-threads-get-many ids 'full)))
       (delete-region (line-beginning-position)
                      (line-end-position))
       (let ((meta-threads
              (mapcar
               (lambda (thread-result)
-                (gmail-helper-threads-get (plist-get thread-result :id) 'metadata))
+                (gmail-helper-threads-get (plist-get thread-result :id) 'full))
               threads)))
         (cl-loop for thread in meta-threads
                  do (gmail-search-mode-render-thread thread)))
@@ -195,6 +195,8 @@
                               (propertize ", "
                                           'face
                                           'gmail-search-mode-from-face))
+                   "\n"
+                   (plist-get thread :id)
                    "\n\n"))
           (point (point)))
       (insert view)
