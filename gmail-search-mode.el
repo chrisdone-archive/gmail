@@ -69,6 +69,11 @@
   "Face for the snippet."
   :group 'gmail)
 
+(defface gmail-search-mode-body-face
+  '((((class color)) :inherit erc-default-face))
+  "Face for the snippet."
+  :group 'gmail)
+
 (defface gmail-search-mode-date-face
   '((((class color)) :inherit zenburn-orange))
   "Face for the date."
@@ -102,6 +107,33 @@
 
 (define-key gmail-search-mode-map (kbd "g") 'gmail-search-mode-revert)
 (define-key gmail-search-mode-map (kbd "s") 'gmail-search-mode-search)
+(define-key gmail-search-mode-map (kbd "n") 'gmail-search-mode-next)
+(define-key gmail-search-mode-map (kbd "p") 'gmail-search-mode-prev)
+(define-key gmail-search-mode-map (kbd "RET") 'gmail-search-mode-open-thread)
+
+(defun gmail-search-mode-next ()
+  "Go to the next result."
+  (interactive)
+  (if (= (line-beginning-position)
+         (line-end-position))
+      (forward-line 1)
+   (search-forward-regexp "\n\n")))
+
+(defun gmail-search-mode-prev ()
+  "Go to the prev result."
+  (interactive)
+  (search-backward-regexp "\n\n")
+  (backward-paragraph)
+  (forward-line 1))
+
+(defun gmail-search-mode-open-thread ()
+  "Open the thread at point."
+  (interactive)
+  (let ((thread-id (get-text-property (point) 'gmail-search-mode-thread-id)))
+    (switch-to-buffer (get-buffer-create (format "*gmail-thread:%s*" thread-id)))
+    (gmail-thread-mode)
+    (setq gmail-thread-mode-thread-id thread-id)
+    (gmail-thread-mode-revert)))
 
 (defun gmail-search-mode-revert ()
   "Revert the current buffer; in other words: re-run the search."
@@ -111,7 +143,6 @@
     (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
   (redisplay t)
   (cond
-   ;; (t)
    ((and (null gmail-search-mode-labels)
          (string= "" gmail-search-mode-query))
     (setq gmail-search-mode-threads
@@ -195,11 +226,9 @@
                               (propertize ", "
                                           'face
                                           'gmail-search-mode-from-face))
-                   "\n"
-                   (plist-get thread :id)
                    "\n\n"))
           (point (point)))
-      (insert view)
+      (insert (propertize view 'gmail-search-mode-thread-id (plist-get thread :id)))
       (let ((o (make-overlay point (point))))
         (if unread
             (overlay-put o 'face 'gmail-search-mode-unread-face)

@@ -29,11 +29,12 @@
                                     "gmail.py"
                                     (format "%S" (list cmd)))
                (buffer-string))))
-    (with-current-buffer "*scratch*"
-      (insert (format "%S =>" cmd)
-              "\n"
-              out
-              "\n\n"))
+    (when nil
+      (with-current-buffer "*scratch*"
+        (insert (format "%S =>" cmd)
+                "\n"
+                out
+                "\n\n")))
     (car (read out))))
 
 (defun gmail-helper-run-many (cmds)
@@ -48,11 +49,12 @@
                                     "gmail.py"
                                     (format "%S" cmds))
                (buffer-string))))
-    (with-current-buffer "*scratch*"
-      (insert (format "%S =>" cmds)
-              "\n"
-              out
-              "\n\n"))
+    (when nil
+      (with-current-buffer "*scratch*"
+        (insert (format "%S =>" cmds)
+                "\n"
+                out
+                "\n\n")))
     (read out)))
 
 (defun gmail-helper-labels-list ()

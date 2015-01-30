@@ -41,4 +41,28 @@ Operates on the active region or the whole buffer."
          (get-function (lambda (s) (or (plist-get plist (intern (substring s 1 -1))) s))))
     (replace-regexp-in-string "&[^; ]*;" get-function string)))
 
+(defun gmail-encoding-decode-base64 (string.)
+  "Decode a base64-encoded email and strip off DOS newlines."
+  (let ((string (replace-regexp-in-string
+                 "_" "/"
+                 (replace-regexp-in-string "-" "+" string.))))
+    (replace-regexp-in-string
+     "\r" ""
+     (condition-case error
+         (base64-decode-string string)
+       (error
+        (catch 'done
+          (when (string-match
+                 "\\([A-Za-z0-9+/ \t\r\n]+\\)=*" string)
+            (let ((tail (substring string (match-end 0)))
+                  (string (match-string 1 string)))
+              (dotimes (i 3)
+                (condition-case nil
+                    (progn
+                      (setq string (base64-decode-string string))
+                      (throw 'done (concat string tail)))
+                  (error))
+                (setq string (concat string "=")))))
+          (signal (car error) (cdr error))))))))
+
 (provide 'gmail-encoding)
