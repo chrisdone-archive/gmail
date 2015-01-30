@@ -117,7 +117,7 @@
   (if (= (line-beginning-position)
          (line-end-position))
       (forward-line 1)
-   (search-forward-regexp "\n\n")))
+    (search-forward-regexp "\n\n")))
 
 (defun gmail-search-mode-prev ()
   "Go to the prev result."
@@ -187,7 +187,8 @@
 
 (defun gmail-search-mode-render-thread (thread)
   "Render the given thread."
-  (let* ((message (car (plist-get thread :messages)))
+  (let* ((messages (plist-get thread :messages))
+         (message (car messages))
          (snippet (gmail-encoding-decode-html (plist-get message :snippet)))
          (payload (plist-get message :payload))
          (headers (plist-get payload :headers))
@@ -196,7 +197,10 @@
          (date (mail-header-parse-date (gmail-headers-lookup "Date" headers)))
          (labels (plist-get message :labelIds))
          (unread (remove-if-not (lambda (label) (string= label "UNREAD"))
-                                labels)))
+                                (apply #'append
+                                       (mapcar (lambda (message)
+                                                 (plist-get message :labelIds))
+                                               messages)))))
     (let ((view
            (concat (gmail-search-mode-ellipsis
                     (propertize (concat from " ") 'face 'gmail-search-mode-from-face)

@@ -21,6 +21,16 @@
   "Current thread id.")
 (make-variable-buffer-local 'gmail-thread-mode-thread-id)
 
+(defface gmail-thread-mode-read-face
+  `((((class color)) :background "#393939"))
+  "Face for read email.s"
+  :group 'gmail)
+
+(defface gmail-thread-mode-unread-face
+  `((((class color)) :background "#393939" :weight bold))
+  "Face for unread emails."
+  :group 'gmail)
+
 (define-derived-mode gmail-thread-mode special-mode "GMail-Thread"
   "View a GMail thread.")
 
@@ -51,8 +61,8 @@
                                   labels)))
       (insert (propertize subject
                           'face (if unread
-                                    'gmail-search-mode-subject-unread-face
-                                  'gmail-search-mode-subject-face))
+                                    'gmail-thread-mode-subject-unread-face
+                                  'gmail-thread-mode-subject-face))
               " "
               (propertize
                (format-time-string gmail-search-mode-date-format date)
@@ -95,14 +105,14 @@
                               (propertize snippet
                                           'face 'gmail-search-mode-snippet-face)
                               (1- gmail-search-mode-page-columns))))
-                   "\n\n"
-                   ))
+                   "\n"))
           (point (point)))
       (insert view)
       (let ((o (make-overlay point (point))))
         (if unread
-            (overlay-put o 'face 'gmail-search-mode-unread-face)
-          (overlay-put o 'face 'gmail-search-mode-read-face)))
+            (overlay-put o 'face 'gmail-thread-mode-unread-face)
+          (overlay-put o 'face 'gmail-thread-mode-read-face)))
+      (insert "\n")
       (let ((start (point)))
         (insert (propertize (gmail-thread-mode-plaintext payload)
                             'face 'gmail-search-mode-body-face)
