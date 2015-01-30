@@ -111,7 +111,7 @@
     (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
   (redisplay t)
   (cond
-   (t)
+   ;; (t)
    ((and (null gmail-search-mode-labels)
          (string= "" gmail-search-mode-query))
     (setq gmail-search-mode-threads
@@ -131,9 +131,9 @@
       (erase-buffer)
       (insert "Search: " (propertize gmail-search-mode-query 'face 'gmail-search-mode-query-face)
               "\n")
-      (insert (format "%d results\n" (plist-get thread-results :resultSizeEstimate)))
+      (insert (format "%d estimated total results\n" (plist-get thread-results :resultSizeEstimate)))
       (insert "\n")
-      (insert (propertize "Downloading messages…" 'face 'font-lock-comment))
+      (insert (propertize "Downloading threads…" 'face 'font-lock-comment))
       (redisplay t)
       (let ((ids (remove-if
                   (lambda (id)
@@ -142,13 +142,13 @@
                             (plist-get thread-result :id))
                           threads))))
         (unless (null ids)
-          (gmail-helper-messages-get-many ids 'metadata)))
+          (gmail-helper-threads-get-many ids 'metadata)))
       (delete-region (line-beginning-position)
                      (line-end-position))
       (let ((meta-threads
              (mapcar
               (lambda (thread-result)
-                (gmail-helper-messages-get (plist-get thread-result :id) 'metadata))
+                (gmail-helper-threads-get (plist-get thread-result :id) 'metadata))
               threads)))
         (cl-loop for thread in meta-threads
                  do (gmail-search-mode-render-thread thread)))
@@ -156,13 +156,14 @@
 
 (defun gmail-search-mode-render-thread (thread)
   "Render the given thread."
-  (let* ((snippet (gmail-encoding-decode-html (plist-get thread :snippet)))
-         (payload (plist-get thread :payload))
+  (let* ((message (car (plist-get thread :messages)))
+         (snippet (gmail-encoding-decode-html (plist-get message :snippet)))
+         (payload (plist-get message :payload))
          (headers (plist-get payload :headers))
          (subject (gmail-headers-lookup "Subject" headers))
          (from (gmail-headers-lookup "From" headers))
          (date (mail-header-parse-date (gmail-headers-lookup "Date" headers)))
-         (labels (plist-get thread :labelIds))
+         (labels (plist-get message :labelIds))
          (unread (remove-if-not (lambda (label) (string= label "UNREAD"))
                                 labels)))
     (let ((view

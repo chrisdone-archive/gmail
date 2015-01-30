@@ -19,31 +19,41 @@
 
 (defun gmail-helper-run (cmd)
   "Run the Python helper with the given commands."
-  (car (read
-        (with-temp-buffer
-          (call-process-region (point-min)
-                               (point-max)
-                               "python"
-                               nil
-                               (current-buffer)
-                               nil
-                               "gmail.py"
-                               (format "%S" (list cmd)))
-          (buffer-string)))))
+  (let ((out (with-temp-buffer
+               (call-process-region (point-min)
+                                    (point-max)
+                                    "python"
+                                    nil
+                                    (current-buffer)
+                                    nil
+                                    "gmail.py"
+                                    (format "%S" (list cmd)))
+               (buffer-string))))
+    (with-current-buffer "*scratch*"
+      (insert (format "%S =>" cmd)
+              "\n"
+              out
+              "\n\n"))
+    (car (read out))))
 
 (defun gmail-helper-run-many (cmds)
   "Run the Python helper with the given commands."
-  (read
-   (with-temp-buffer
-     (call-process-region (point-min)
-                          (point-max)
-                          "python"
-                          nil
-                          (current-buffer)
-                          nil
-                          "gmail.py"
-                          (format "%S" cmds))
-     (buffer-string))))
+  (let ((out (with-temp-buffer
+               (call-process-region (point-min)
+                                    (point-max)
+                                    "python"
+                                    nil
+                                    (current-buffer)
+                                    nil
+                                    "gmail.py"
+                                    (format "%S" cmds))
+               (buffer-string))))
+    (with-current-buffer "*scratch*"
+      (insert (format "%S =>" cmds)
+              "\n"
+              out
+              "\n\n"))
+    (read out)))
 
 (defun gmail-helper-labels-list ()
   "Get a list of labels."
@@ -64,31 +74,18 @@
    (format "thread-%s-%S" id format)
    (gmail-helper-run (list "threads" "get" id (symbol-name format)))))
 
-(defun gmail-helper-messages-list (tags query)
-  "Get a list of messages that match the given TAGS and QUERY."
-  (gmail-helper-run (list "messages" "list" tags query)))
-
-(defun gmail-helper-messages-get (id format)
-  "Retrieve the message by ID with FORMAT level of detail:
+(defun gmail-helper-threads-get-many (ids format)
+  "Retrieve the threads by IDS with FORMAT level of detail:
    full
    metadata
    minimal"
-  (with-gmail-caching
-   (concat "message-" id)
-   (gmail-helper-run (list "messages" "get" id (symbol-name format)))))
-
-(defun gmail-helper-messages-get-many (ids format)
-  "Retrieve the messages by IDS with FORMAT level of detail:
-   full
-   metadata
-   minimal"
-  (let ((messages (gmail-helper-run-many
+  (let ((threads (gmail-helper-run-many
                    (mapcar (lambda (id)
-                             (list "messages" "get" id (symbol-name format)))
+                             (list "threads" "get" id (symbol-name format)))
                            ids))))
-    (cl-loop for message in messages
-             collect (gmail-cache-put (concat "message-" (plist-get message :id))
-                                      message))))
+    (cl-loop for thread in threads
+             collect (gmail-cache-put (concat "thread-" (plist-get thread :id))
+                                      thread))))
 
 (defun gmail-helper-drafts-list ()
   "Get a list of drafts."
