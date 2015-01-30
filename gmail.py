@@ -20,6 +20,7 @@ from apiclient.discovery import build
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run
+import json
 
 # Gmail API boilerplate
 
@@ -68,6 +69,13 @@ for cmd in cmds:
       format = args[3]
       message = gmail_service.users().messages().get(userId='me',id=id,format=format).execute()
       print_unicode(dumps(message))
+    if args[1] == 'modify':
+      body = json.loads('{"removeLabelIds":[],"addLabelIds":[]}')
+      id = args[2];
+      body["addLabelIds"] = args[3];
+      body["removeLabelIds"] = args[4];
+      labels = gmail_service.users().messages().modify(userId='me',id=id,body=body).execute()
+      print_unicode(dumps(labels))
   if args[0] == 'drafts':
     if args[1] == 'list':
       drafts = gmail_service.users().drafts().list(userId='me').execute()

@@ -76,6 +76,19 @@
    (format "thread-%s-%S" id format)
    (gmail-helper-run (list "threads" "get" id (symbol-name format)))))
 
+(defun gmail-helper-messages-modify (id add-labels remove-labels)
+  "Set labels for the message."
+  (gmail-helper-run (list "messages" "modify" id add-labels remove-labels)))
+
+(defun gmail-helper-threads-get (id format)
+  "Retrieve the thread of messages by ID with FORMAT level of detail:
+   full
+   metadata
+   minimal"
+  (with-gmail-caching
+   (format "thread-%s-%S" id format)
+   (gmail-helper-run (list "threads" "get" id (symbol-name format)))))
+
 (defun gmail-helper-threads-get-many (ids format)
   "Retrieve the threads by IDS with FORMAT level of detail:
    full
