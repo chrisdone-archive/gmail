@@ -35,11 +35,134 @@
   "View a GMail thread.")
 
 (define-key gmail-thread-mode-map (kbd "g") 'gmail-thread-mode-revert)
+(define-key gmail-thread-mode-map (kbd "l") 'gmail-thread-mode-labels)
+(define-key gmail-thread-mode-map (kbd "a") 'gmail-thread-mode-archive)
+(define-key gmail-thread-mode-map (kbd "r") 'gmail-thread-mode-mark-as-read)
+(define-key gmail-thread-mode-map (kbd "d") 'gmail-thread-mode-delete)
+(define-key gmail-thread-mode-map (kbd "n") 'gmail-thread-mode-next)
+(define-key gmail-thread-mode-map (kbd "p") 'gmail-thread-mode-prev)
+
+(defun gmail-thread-mode-next ()
+  (interactive)
+  (let ((os (sort (remove-if-not (lambda (o) (overlay-get o 'gmail-thread-mode-message-header))
+                                 (overlays-in (point) (point-max)))
+                  (lambda (a b)
+                    (< (overlay-start a)
+                       (overlay-start b))))))
+    (when os
+      (if (= (overlay-start (car os))
+             (point))
+          (when (cadr os)
+            (goto-char (overlay-start (cadr os))))
+        (goto-char (overlay-start (car os)))))))
+
+(defun gmail-thread-mode-prev ()
+  (interactive)
+  (let ((os (sort (remove-if-not (lambda (o) (overlay-get o 'gmail-thread-mode-message-header))
+                                 (overlays-in (point-min) (point)))
+                  (lambda (a b)
+                    (> (overlay-start a)
+                       (overlay-start b))))))
+    (when os
+      (if (= (overlay-start (car os))
+             (point))
+          (when (cadr os)
+            (goto-char (overlay-start (cadr os))))
+        (goto-char (overlay-start (car os)))))))
+
+(defun gmail-thread-mode-delete ()
+  (interactive)
+  (let* ((message-id (get-text-property (point) 'gmail-thread-mode-message-id))
+         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+         (message (car (remove-if-not (lambda (message)
+                                        (string= message-id (plist-get message :id)))
+                                      (plist-get thread :messages))))
+         (labels (plist-get message :labelIds)))
+    (unless message
+      (error "No message at point."))
+    (gmail-thread-mode-add-tag message-id "TRASH" t)
+    (kill-buffer)))
+
+(defun gmail-thread-mode-archive ()
+  (interactive)
+  (let* ((message-id (get-text-property (point) 'gmail-thread-mode-message-id))
+         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+         (message (car (remove-if-not (lambda (message)
+                                        (string= message-id (plist-get message :id)))
+                                      (plist-get thread :messages))))
+         (labels (plist-get message :labelIds)))
+    (unless message
+      (error "No message at point."))
+    (gmail-thread-mode-remove-tag message-id "INBOX" t)))
+
+(defun gmail-thread-mode-mark-as-read ()
+  (interactive)
+  (let* ((message-id (get-text-property (point) 'gmail-thread-mode-message-id))
+         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+         (message (car (remove-if-not (lambda (message)
+                                        (string= message-id (plist-get message :id)))
+                                      (plist-get thread :messages))))
+         (labels (plist-get message :labelIds)))
+    (unless message
+      (error "No message at point."))
+    (gmail-thread-mode-remove-tag message-id "UNREAD" t)))
+
+(defun gmail-thread-mode-labels ()
+  "Adjust the labels."
+  (interactive)
+  (let* ((message-id (get-text-property (point) 'gmail-thread-mode-message-id))
+         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+         (message (car (remove-if-not (lambda (message)
+                                        (string= message-id (plist-get message :id)))
+                                      (plist-get thread :messages))))
+         (labels (plist-get message :labelIds)))
+    (unless message
+      (error "No message at point."))
+    (let ((key
+           (key-description
+            (vector
+             (read-key
+              (concat (propertize "Label command: " 'face 'minibuffer-prompt)
+                      (propertize "a: " 'face 'minibuffer-prompt)
+                      "add, "
+                      (propertize "r: " 'face 'minibuffer-prompt)
+                      "remove"))))))
+      (cond
+       ((string= key "a")
+        (let* ((chosen-label (ido-completing-read
+                              "Label to add: "
+                              (mapcar (lambda (l) (concat (plist-get l :id) " (" (plist-get l :name) ")"))
+                                      gmail-labels)))
+               (label-id (car (split-string chosen-label " "))))
+          (gmail-thread-mode-add-tag message-id label-id)))
+       ((string= key "r")
+        (let* ((chosen-label (ido-completing-read
+                              "Label to remove: "
+                              (mapcar (lambda (l) (concat l " (" (gmail-labels-pretty l) ")"))
+                                      labels)))
+               (label-id (car (split-string chosen-label " "))))
+          (gmail-thread-mode-remove-tag message-id label-id)))))))
+
+(defun gmail-thread-mode-remove-tag (message-id label-id &optional no-refresh)
+  (gmail-helper-messages-modify message-id (list) (list label-id))
+  (if no-refresh
+      (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
+    (gmail-thread-mode-revert))
+  (message "Tag removed."))
+
+(defun gmail-thread-mode-add-tag (message-id label-id &optional no-refresh)
+  (gmail-helper-messages-modify message-id (list label-id) (list))
+  (if no-refresh
+      (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
+    (gmail-thread-mode-revert))
+  (message "Tag added."))
 
 (defun gmail-thread-mode-revert ()
   "Revert the current buffer; in other words: re-run the thread."
   (interactive)
+  (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
   (let ((inhibit-read-only t))
+    (remove-overlays)
     (erase-buffer)
     (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
   (redisplay t)
@@ -58,27 +181,32 @@
            (labels (plist-get message :labelIds))
            (date (mail-header-parse-date (gmail-headers-lookup "Date" headers)))
            (unread (remove-if-not (lambda (label) (string= label "UNREAD"))
-                                  labels)))
-      (insert (propertize subject
-                          'face (if unread
-                                    'gmail-search-mode-subject-unread-face
-                                  'gmail-search-mode-subject-face))
-              (if (> (length subject) gmail-search-mode-date-length)
-                  "\n"
-                " ")
-              (propertize
-               (format-time-string gmail-search-mode-date-format date)
-               'face 'gmail-search-mode-date-face)
-              "\n"
-              (mapconcat #'identity
-                         (mapcar (lambda (label)
-                                   (propertize label
-                                               'face 'gmail-search-mode-labels-face))
-                                 (mapcar #'gmail-labels-pretty labels))
-                         (propertize ", "
-                                     'face
-                                     'gmail-search-mode-from-face))
-              "\n\n"))
+                                  labels))
+           (o (make-overlay (point-min)
+                            (point-min))))
+      (overlay-put o 'gmail-thread-mode-message-header t)
+      (let ((header
+             (concat (propertize subject
+                                 'face (if unread
+                                           'gmail-search-mode-subject-unread-face
+                                         'gmail-search-mode-subject-face))
+                     (if (> (length subject) gmail-search-mode-date-length)
+                         "\n"
+                       " ")
+                     (propertize
+                      (format-time-string gmail-search-mode-date-format date)
+                      'face 'gmail-search-mode-date-face)
+                     "\n"
+                     (mapconcat #'identity
+                                (mapcar (lambda (label)
+                                          (propertize label
+                                                      'face 'gmail-search-mode-labels-face))
+                                        (mapcar #'gmail-labels-pretty labels))
+                                (propertize ", "
+                                            'face
+                                            'gmail-search-mode-from-face))
+                     "\n\n")))
+        (insert (propertize header 'gmail-thread-mode-message-id (plist-get message :id)))))
     (cl-loop for message in (plist-get thread :messages)
              do (gmail-thread-mode-render-message message))
     (goto-char (point-min))))
@@ -107,10 +235,20 @@
                               (propertize snippet
                                           'face 'gmail-search-mode-snippet-face)
                               (1- gmail-search-mode-page-columns))))
+                   "\n"
+                   (mapconcat #'identity
+                              (mapcar (lambda (label)
+                                        (propertize label
+                                                    'face 'gmail-search-mode-labels-face))
+                                      (mapcar #'gmail-labels-pretty labels))
+                              (propertize ", "
+                                          'face
+                                          'gmail-search-mode-from-face))
                    "\n"))
           (point (point)))
-      (insert view)
+      (insert (propertize view 'gmail-thread-mode-message-id (plist-get message :id)))
       (let ((o (make-overlay point (point))))
+        (overlay-put o 'gmail-thread-mode-message-header t)
         (if unread
             (overlay-put o 'face 'gmail-thread-mode-unread-face)
           (overlay-put o 'face 'gmail-thread-mode-read-face)))
@@ -118,7 +256,7 @@
       (let ((start (point)))
         (insert (propertize (gmail-thread-mode-plaintext payload)
                             'face 'gmail-search-mode-body-face)
-                "\n")
+                "\n\n")
         (decode-coding-region start (point)
                               'utf-8)
         (gmail-thread-mode-fill-lines start (point))))))
@@ -147,7 +285,7 @@
   "Fill lines longer than 80 columns, to make it more readable."
   (save-excursion
     (goto-char start)
-    (while (search-forward "\n" end t 1)
+    (while (search-forward "\n" nil t 1)
       (forward-char -1)
       (when (> (current-column) 80)
         (fill-region (line-beginning-position)
