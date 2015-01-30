@@ -161,15 +161,15 @@
   "Revert the current buffer; in other words: re-run the thread."
   (interactive)
   (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
+  (gmail-thread-mode-render))
+
+(defun gmail-thread-mode-render ()
+  "Render the messages list."
   (let ((inhibit-read-only t))
     (remove-overlays)
     (erase-buffer)
     (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
   (redisplay t)
-  (gmail-thread-mode-render))
-
-(defun gmail-thread-mode-render ()
-  "Render the messages list."
   (let ((inhibit-read-only t)
         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full)))
     (erase-buffer)

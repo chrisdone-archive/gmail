@@ -134,7 +134,7 @@
     (switch-to-buffer (get-buffer-create (format "*gmail-thread:%s:%s*" thread-id subject)))
     (gmail-thread-mode)
     (setq gmail-thread-mode-thread-id thread-id)
-    (gmail-thread-mode-revert)))
+    (gmail-thread-mode-render)))
 
 (defun gmail-search-mode-revert ()
   "Revert the current buffer; in other words: re-run the search."
