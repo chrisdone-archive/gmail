@@ -230,6 +230,11 @@
                               (propertize ", "
                                           'face
                                           'gmail-search-mode-from-face))
+                   " "
+                   (let ((replies (1- (length messages))))
+                     (if (= replies 1)
+                         "(1 reply)"
+                       (format "(%d replies)" replies)))
                    "\n\n"))
           (point (point)))
       (insert (propertize view 'gmail-search-mode-thread-id (plist-get thread :id)))
