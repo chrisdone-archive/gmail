@@ -1,6 +1,6 @@
-;;; gmail.el --- GMail client for Emacs.
+;;; gmail-headers.el ---
 
-;; Copyright (c) 2015 Chris Done. All rights reserved.
+;; Copyright (c) 2014 Chris Done. All rights reserved.
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -17,7 +17,13 @@
 
 ;;; Code:
 
-(defgroup gmail nil
-  "GMail client for Emacs.")
+(defun gmail-headers-lookup (key assoc)
+  (plist-get
+   (find nil assoc
+         :test (lambda (_ header)
+                 (string= key
+                          ;;
+                          (plist-get header :name))))
+   :value))
 
-(provide 'gmail)
+(provide 'gmail-headers)

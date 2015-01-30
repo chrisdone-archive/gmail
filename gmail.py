@@ -41,39 +41,43 @@ def print_unicode(string):
 
 # Command dispatching code
 
-args = loads(sys.argv[1])
+cmds = loads(sys.argv[1])
 
-if args[0] == 'threads':
-  if args[1] == 'list':
-    labels = args[2]
-    q = args[3]
-    threads = gmail_service.users().threads().list(userId='me',labelIds=labels,q=q).execute()
-    print_unicode(dumps(threads))
-  if args[1] == 'get':
-    id = args[2]
-    format = args[3]
-    thread = gmail_service.users().threads().get(userId='me',id=id,format=format).execute()
-    print_unicode(dumps(thread))
-if args[0] == 'messages':
-  if args[1] == 'list':
-    labels = args[2]
-    q = args[3]
-    messages = gmail_service.users().messages().list(userId='me',labelIds=labels,q=q).execute()
-    print_unicode(dumps(messages))
-  if args[1] == 'get':
-    id = args[2]
-    format = args[3]
-    message = gmail_service.users().messages().get(userId='me',id=id,format=format).execute()
-    print_unicode(dumps(message))
-if args[0] == 'drafts':
-  if args[1] == 'list':
-    drafts = gmail_service.users().drafts().list(userId='me').execute()
-    print_unicode(dumps(drafts))
-if args[0] == 'profile':
-  if args[1] == 'get':
-    profile = gmail_service.users().getProfile(userId='me').execute()
-    print_unicode(dumps(profile))
-if args[0] == 'labels':
-  if args[1] == 'list':
-    labels = gmail_service.users().labels().list(userId='me').execute()
-    print_unicode(dumps(labels))
+print "("
+for cmd in cmds:
+  args = cmd
+  if args[0] == 'threads':
+    if args[1] == 'list':
+      labels = args[2]
+      q = args[3]
+      threads = gmail_service.users().threads().list(userId='me',labelIds=labels,q=q).execute()
+      print_unicode(dumps(threads))
+    if args[1] == 'get':
+      id = args[2]
+      format = args[3]
+      thread = gmail_service.users().threads().get(userId='me',id=id,format=format).execute()
+      print_unicode(dumps(thread))
+  if args[0] == 'messages':
+    if args[1] == 'list':
+      labels = args[2]
+      q = args[3]
+      messages = gmail_service.users().messages().list(userId='me',labelIds=labels,q=q).execute()
+      print_unicode(dumps(messages))
+    if args[1] == 'get':
+      id = args[2]
+      format = args[3]
+      message = gmail_service.users().messages().get(userId='me',id=id,format=format).execute()
+      print_unicode(dumps(message))
+  if args[0] == 'drafts':
+    if args[1] == 'list':
+      drafts = gmail_service.users().drafts().list(userId='me').execute()
+      print_unicode(dumps(drafts))
+  if args[0] == 'profile':
+    if args[1] == 'get':
+      profile = gmail_service.users().getProfile(userId='me').execute()
+      print_unicode(dumps(profile))
+  if args[0] == 'labels':
+    if args[1] == 'list':
+      labels = gmail_service.users().labels().list(userId='me').execute()
+      print_unicode(dumps(labels))
+print ")"
