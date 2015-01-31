@@ -111,6 +111,12 @@
 (define-key gmail-search-mode-map (kbd "p") 'gmail-search-mode-prev)
 (define-key gmail-search-mode-map (kbd "RET") 'gmail-search-mode-open-thread)
 
+(defun gmail-search ()
+  (interactive)
+  (switch-to-buffer (get-buffer-create "*gmail-search*"))
+  (unless (eq major-mode 'gmail-search-mode)
+    (gmail-search-mode)))
+
 (defun gmail-search-mode-next ()
   "Go to the next result."
   (interactive)
