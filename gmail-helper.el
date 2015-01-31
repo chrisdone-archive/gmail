@@ -80,6 +80,10 @@
   "Set labels for the message."
   (gmail-helper-run (list "messages" "modify" id add-labels remove-labels)))
 
+(defun gmail-helper-threads-modify (id add-labels remove-labels)
+  "Set labels for the message."
+  (gmail-helper-run (list "threads" "modify" id add-labels remove-labels)))
+
 (defun gmail-helper-threads-get (id format)
   "Retrieve the thread of messages by ID with FORMAT level of detail:
    full

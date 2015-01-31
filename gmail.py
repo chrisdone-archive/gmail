@@ -58,6 +58,13 @@ for cmd in cmds:
       format = args[3]
       thread = gmail_service.users().threads().get(userId='me',id=id,format=format).execute()
       print_unicode(dumps(thread))
+    if args[1] == 'modify':
+      body = json.loads('{"removeLabelIds":[],"addLabelIds":[]}')
+      id = args[2];
+      body["addLabelIds"] = args[3];
+      body["removeLabelIds"] = args[4];
+      labels = gmail_service.users().threads().modify(userId='me',id=id,body=body).execute()
+      print_unicode(dumps(labels))
   if args[0] == 'messages':
     if args[1] == 'list':
       labels = args[2]
