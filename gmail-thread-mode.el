@@ -22,12 +22,12 @@
 (make-variable-buffer-local 'gmail-thread-mode-thread-id)
 
 (defface gmail-thread-mode-read-face
-  `((((class color)) :background "#393939"))
-  "Face for read email.s"
+  `()
+  "Face for read thread headers."
   :group 'gmail)
 
 (defface gmail-thread-mode-unread-face
-  `((((class color)) :background "#393939" :weight bold))
+  `()
   "Face for unread emails."
   :group 'gmail)
 

@@ -40,52 +40,53 @@
   :group 'gmail)
 
 (defface gmail-search-mode-from-face
-  '((((class color)) :inherit zenburn-blue-2))
+  '()
   "Face for the sender of emails."
   :group 'gmail)
 
 (defface gmail-search-mode-subject-face
-  '((((class color)) :inherit zenburn-blue))
+  '()
   "Face for subjects."
   :group 'gmail)
 
 (defface gmail-search-mode-subject-unread-face
-  `((((class color)) :foreground ,zenburn-cyan))
+  '()
   "Face for unread subjects."
   :group 'gmail)
 
 (defface gmail-search-mode-read-face
-  `((((class color))))
-  "Face for read email.s"
+  `()
+  "Face for read email."
   :group 'gmail)
 
 (defface gmail-search-mode-unread-face
-  `((((class color)) :weight bold))
+  '((((class color)) :weight bold))
   "Face for unread emails."
   :group 'gmail)
 
 (defface gmail-search-mode-snippet-face
-  '((((class color)) :inherit zenburn-green+1))
+  '()
   "Face for the snippet."
   :group 'gmail)
 
 (defface gmail-search-mode-body-face
-  '((((class color)) :inherit erc-default-face))
+  '()
   "Face for the snippet."
   :group 'gmail)
 
 (defface gmail-search-mode-date-face
-  '((((class color)) :inherit zenburn-orange))
+  '()
   "Face for the date."
   :group 'gmail)
 
 (defface gmail-search-mode-labels-face
-  '((((class color)) :background "#393939" :foreground "#999"))
+  '()
   "Face for labels."
   :group 'gmail)
 
 (defface gmail-search-mode-query-face
-  '((((class color)) :foreground "#999"))
+  '((((class color) (background dark)) :foreground "#999")
+    (((class color) (background light)) :foreground "#999"))
   "Face for queries/"
   :group 'gmail)
 
