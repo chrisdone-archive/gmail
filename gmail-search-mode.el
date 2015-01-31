@@ -109,8 +109,13 @@
 (define-key gmail-search-mode-map (kbd "g") 'gmail-search-mode-revert)
 (define-key gmail-search-mode-map (kbd "s") 'gmail-search-mode-search)
 (define-key gmail-search-mode-map (kbd "n") 'gmail-search-mode-next)
+(define-key gmail-search-mode-map (kbd "i") 'gmail-search-mode-inbox)
 (define-key gmail-search-mode-map (kbd "p") 'gmail-search-mode-prev)
 (define-key gmail-search-mode-map (kbd "RET") 'gmail-search-mode-open-thread)
+
+(defun gmail-search-mode-inbox ()
+  (interactive)
+  (gmail-search-mode-set '() "label:inbox"))
 
 (defun gmail-search ()
   (interactive)
@@ -148,7 +153,9 @@
   (interactive)
   (let ((inhibit-read-only t))
     (erase-buffer)
-    (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
+    (insert "Search: " (propertize gmail-search-mode-query 'face 'gmail-search-mode-query-face)
+            "\n")
+    (insert (propertize "\nRefreshing thread list…" 'face 'font-lock-comment)))
   (redisplay t)
   (cond
    ((and (null gmail-search-mode-labels)
@@ -167,13 +174,10 @@
     (let ((inhibit-read-only t)
           (thread-results gmail-search-mode-threads)
           (threads (plist-get gmail-search-mode-threads :threads)))
-      (erase-buffer)
-      (insert "Search: " (propertize gmail-search-mode-query 'face 'gmail-search-mode-query-face)
-              "\n")
+      (delete-region (1- (line-beginning-position))
+                     (line-end-position))
       (insert (format "%d estimated total results\n" (plist-get thread-results :resultSizeEstimate)))
       (insert "\n")
-      (insert (propertize "Downloading threads…" 'face 'font-lock-comment))
-      (redisplay t)
       (let ((ids (remove-if
                   (lambda (id)
                     (gmail-cache-p (format "thread-%s-%S" id 'full)))
@@ -181,6 +185,9 @@
                             (plist-get thread-result :id))
                           threads))))
         (unless (null ids)
+          (insert (propertize (format "Downloading %d threads…" (length ids))
+                              'face 'font-lock-comment))
+          (redisplay t)
           (gmail-helper-threads-get-many ids 'full)))
       (delete-region (line-beginning-position)
                      (line-end-position))
@@ -244,7 +251,7 @@
                          "(1 reply)"
                        (if (= 0 replies)
                            ""
-                           (format "(%d replies)" replies))))
+                         (format "(%d replies)" replies))))
                    "\n\n"))
           (point (point)))
       (insert (propertize view

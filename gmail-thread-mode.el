@@ -168,7 +168,7 @@
   (let ((inhibit-read-only t))
     (remove-overlays)
     (erase-buffer)
-    (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
+    (insert (propertize "Refreshing thread…" 'face 'font-lock-comment)))
   (redisplay t)
   (goto-char (point-min))
   (let ((inhibit-read-only t)
