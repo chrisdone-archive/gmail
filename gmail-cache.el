@@ -63,6 +63,7 @@
 (defun gmail-cache-delete (key)
   "Invalidate the cache."
   (gmail-cache-ensure)
-  (delete-file (gmail-cache-key-file key)))
+  (when (gmail-cache-p key)
+    (delete-file (gmail-cache-key-file key))))
 
 (provide 'gmail-cache)
