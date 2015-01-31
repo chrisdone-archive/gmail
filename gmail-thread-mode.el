@@ -80,20 +80,13 @@
          (labels (plist-get message :labelIds)))
     (unless message
       (error "No message at point."))
-    (gmail-thread-mode-add-tag message-id "TRASH" t)
+    (gmail-thread-mode-add-message-tag message-id "TRASH" t)
     (kill-buffer)))
 
 (defun gmail-thread-mode-archive ()
   (interactive)
-  (let* ((message-id (get-text-property (point) 'gmail-thread-mode-message-id))
-         (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
-         (message (car (remove-if-not (lambda (message)
-                                        (string= message-id (plist-get message :id)))
-                                      (plist-get thread :messages))))
-         (labels (plist-get message :labelIds)))
-    (unless message
-      (error "No message at point."))
-    (gmail-thread-mode-remove-tag message-id "INBOX" t)))
+  (gmail-thread-mode-remove-thread-tag "INBOX" t)
+  (kill-buffer))
 
 (defun gmail-thread-mode-mark-as-read ()
   (interactive)
@@ -105,7 +98,7 @@
          (labels (plist-get message :labelIds)))
     (unless message
       (error "No message at point."))
-    (gmail-thread-mode-remove-tag message-id "UNREAD" t)))
+    (gmail-thread-mode-remove-message-tag message-id "UNREAD" t)))
 
 (defun gmail-thread-mode-labels ()
   "Adjust the labels."
@@ -134,28 +127,35 @@
                               (mapcar (lambda (l) (concat (plist-get l :id) " (" (plist-get l :name) ")"))
                                       gmail-labels)))
                (label-id (car (split-string chosen-label " "))))
-          (gmail-thread-mode-add-tag message-id label-id)))
+          (gmail-thread-mode-add-message-tag message-id label-id)))
        ((string= key "r")
         (let* ((chosen-label (ido-completing-read
                               "Label to remove: "
                               (mapcar (lambda (l) (concat l " (" (gmail-labels-pretty l) ")"))
                                       labels)))
                (label-id (car (split-string chosen-label " "))))
-          (gmail-thread-mode-remove-tag message-id label-id)))))))
+          (gmail-thread-mode-remove-message-tag message-id label-id)))))))
 
-(defun gmail-thread-mode-remove-tag (message-id label-id &optional no-refresh)
+(defun gmail-thread-mode-remove-thread-tag (label-id &optional no-refresh)
+  (gmail-helper-threads-modify gmail-thread-mode-thread-id (list) (list label-id))
+  (if no-refresh
+      (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
+    (gmail-thread-mode-revert))
+  (message "Tag removed on whole thread."))
+
+(defun gmail-thread-mode-remove-message-tag (message-id label-id &optional no-refresh)
   (gmail-helper-messages-modify message-id (list) (list label-id))
   (if no-refresh
       (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
     (gmail-thread-mode-revert))
-  (message "Tag removed."))
+  (message "Tag removed to message."))
 
-(defun gmail-thread-mode-add-tag (message-id label-id &optional no-refresh)
+(defun gmail-thread-mode-add-message-tag (message-id label-id &optional no-refresh)
   (gmail-helper-messages-modify message-id (list label-id) (list))
   (if no-refresh
       (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
     (gmail-thread-mode-revert))
-  (message "Tag added."))
+  (message "Tag added to message."))
 
 (defun gmail-thread-mode-revert ()
   "Revert the current buffer; in other words: re-run the thread."
@@ -170,8 +170,10 @@
     (erase-buffer)
     (insert (propertize "Refreshing…" 'face 'font-lock-comment)))
   (redisplay t)
+  (goto-char (point-min))
   (let ((inhibit-read-only t)
-        (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full)))
+        (thread (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+        (final-marker (point-marker)))
     (erase-buffer)
     (let* ((message (car (plist-get thread :messages)))
            (payload (plist-get message :payload))
@@ -208,10 +210,10 @@
                      "\n\n")))
         (insert (propertize header 'gmail-thread-mode-message-id (plist-get message :id)))))
     (cl-loop for message in (plist-get thread :messages)
-             do (gmail-thread-mode-render-message message))
-    (goto-char (point-min))))
+             do (gmail-thread-mode-render-message message final-marker))
+    (goto-char final-marker)))
 
-(defun gmail-thread-mode-render-message (message)
+(defun gmail-thread-mode-render-message (message final-marker)
   "Render the message."
   (let* ((snippet (gmail-encoding-decode-html (plist-get message :snippet)))
          (payload (plist-get message :payload))
@@ -221,6 +223,8 @@
          (labels (plist-get message :labelIds))
          (unread (remove-if-not (lambda (label) (string= label "UNREAD"))
                                 labels)))
+    (when (and unread (= final-marker (point-min)))
+      (set-marker final-marker (point)))
     (let ((view
            (concat (gmail-search-mode-ellipsis
                     (propertize (concat from " ") 'face 'gmail-search-mode-from-face)
