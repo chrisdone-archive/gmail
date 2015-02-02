@@ -108,6 +108,8 @@
 
 (define-key gmail-search-mode-map (kbd "g") 'gmail-search-mode-revert)
 (define-key gmail-search-mode-map (kbd "s") 'gmail-search-mode-search)
+(define-key gmail-search-mode-map (kbd "d") 'gmail-search-mode-delete)
+(define-key gmail-search-mode-map (kbd "a") 'gmail-search-mode-archive)
 (define-key gmail-search-mode-map (kbd "n") 'gmail-search-mode-next)
 (define-key gmail-search-mode-map (kbd "i") 'gmail-search-mode-inbox)
 (define-key gmail-search-mode-map (kbd "p") 'gmail-search-mode-prev)
@@ -148,6 +150,24 @@
     (setq gmail-thread-mode-thread-id thread-id)
     (gmail-thread-mode-render)))
 
+(defun gmail-search-mode-delete ()
+  "Open the thread at point."
+  (interactive)
+  (let ((thread-id (get-text-property (point) 'gmail-search-mode-thread-id)))
+    (message "Deleting ...")
+    (gmail-helper-threads-modify thread-id (list "TRASH") (list))
+    (message "Deleted.")
+    (gmail-search-mode-revert)))
+
+(defun gmail-search-mode-archive ()
+  "Open the thread at point."
+  (interactive)
+  (let ((thread-id (get-text-property (point) 'gmail-search-mode-thread-id)))
+    (message "Archiving ...")
+    (gmail-helper-threads-modify thread-id (list) (list "INBOX"))
+    (message "Archived.")
+    (gmail-search-mode-revert)))
+
 (defun gmail-search-mode-revert ()
   "Revert the current buffer; in other words: re-run the search."
   (interactive)
@@ -157,15 +177,9 @@
             "\n")
     (insert (propertize "\nRefreshing thread list…" 'face 'font-lock-comment)))
   (redisplay t)
-  (cond
-   ((and (null gmail-search-mode-labels)
-         (string= "" gmail-search-mode-query))
-    (setq gmail-search-mode-threads
-          (gmail-helper-threads-list '("INBOX") "")))
-   (t
-    (setq gmail-search-mode-threads
-          (gmail-helper-threads-list gmail-search-mode-labels
-                                     gmail-search-mode-query))))
+  (setq gmail-search-mode-threads
+        (gmail-helper-threads-list gmail-search-mode-labels
+                                   gmail-search-mode-query))
   (gmail-search-mode-render))
 
 (defun gmail-search-mode-render ()

@@ -148,7 +148,7 @@
   (if no-refresh
       (gmail-cache-delete (format "thread-%s-%S" gmail-thread-mode-thread-id 'full))
     (gmail-thread-mode-revert))
-  (message "Tag removed to message."))
+  (message "Tag removed from message."))
 
 (defun gmail-thread-mode-add-message-tag (message-id label-id &optional no-refresh)
   (gmail-helper-messages-modify message-id (list label-id) (list))
@@ -180,6 +180,7 @@
            (headers (plist-get payload :headers))
            (subject (gmail-headers-lookup "Subject" headers))
            (from (gmail-headers-lookup "From" headers))
+           (to (gmail-headers-lookup "To" headers))
            (labels (plist-get message :labelIds))
            (date (mail-header-parse-date (gmail-headers-lookup "Date" headers)))
            (unread (remove-if-not (lambda (label) (string= label "UNREAD"))
@@ -198,6 +199,11 @@
                      (propertize
                       (format-time-string gmail-search-mode-date-format date)
                       'face 'gmail-search-mode-date-face)
+                     "\n"
+                     "To "
+                     (propertize to
+                                 'face
+                                 'gmail-search-mode-from-face)
                      "\n"
                      (mapconcat #'identity
                                 (mapcar (lambda (label)

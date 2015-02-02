@@ -51,7 +51,7 @@ for cmd in cmds:
     if args[1] == 'list':
       labels = args[2]
       q = args[3]
-      threads = gmail_service.users().threads().list(userId='me',labelIds=labels,q=q).execute()
+      threads = gmail_service.users().threads().list(userId='me',labelIds=labels,q=q,maxResults=15).execute()
       print_unicode(dumps(threads))
     if args[1] == 'get':
       id = args[2]
@@ -69,7 +69,7 @@ for cmd in cmds:
     if args[1] == 'list':
       labels = args[2]
       q = args[3]
-      messages = gmail_service.users().messages().list(userId='me',labelIds=labels,q=q).execute()
+      messages = gmail_service.users().messages().list(userId='me',labelIds=labels,q=q,maxResults=15).execute()
       print_unicode(dumps(messages))
     if args[1] == 'get':
       id = args[2]

@@ -32,6 +32,8 @@
     "Inbox")
    ((string= label "CATEGORY_PERSONAL")
     "Private")
+   ((string= label "CATEGORY_SOCIAL")
+    "Social")
    ((string= label "UNREAD")
     "Unread")
    ((string= label "IMPORTANT")
