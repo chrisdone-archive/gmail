@@ -361,11 +361,23 @@
   (save-excursion
     (goto-char start)
     (while (search-forward "\n" nil t 1)
-      (forward-char -1)
-      (when (> (current-column) 80)
-        (fill-region (line-beginning-position)
-                     (line-end-position)))
-      (goto-char (line-end-position))
-      (forward-char 1))))
+      (let* ((point (point))
+             (start-line (line-number-at-pos))
+             (quote-string (when (looking-at "^>")
+                             (save-excursion
+                               (search-forward-regexp "[^ >]" (line-end-position) t 1)
+                               (buffer-substring point (1+ (point)))))))
+
+        (cond
+         (t
+          (when quote-string
+            (add-text-properties (line-beginning-position) (line-end-position)
+                                 '(face message-cited-text)))
+          (forward-char -1)
+          (when (> (current-column) 80)
+            (let ((fill-prefix (when quote-string (concat quote-string " "))))
+              (fill-region (line-beginning-position)
+                           (line-end-position))))
+          (goto-char (1+ (line-end-position)))))))))
 
 (provide 'gmail-thread-mode)
