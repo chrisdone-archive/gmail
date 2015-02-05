@@ -65,4 +65,33 @@ Operates on the active region or the whole buffer."
                 (setq string (concat string "=")))))
           (signal (car error) (cdr error))))))))
 
+(defconst gmail-encoding-number-to-string-approx-suffixes
+  '("k" "M" "G" "T" "P" "E" "Z" "Y"))
+(defun gmail-encoding-number-to-string-approx-suffix (n &optional binary)
+  "Return an approximate decimal representation of NUMBER as a string,
+followed by a multiplier suffix (k, M, G, T, P, E, Z, Y). The representation
+is at most 5 characters long for numbers between 0 and 10^19-5*10^16.
+Uses a minus sign if negative.
+NUMBER may be an integer or a floating point number.
+If the optional argument BINARY is non-nil, use 1024 instead of 1000 as
+the base multiplier."
+  (if (zerop n)
+      "0"
+    (let ((sign "")
+          (b (if binary 1024 1000))
+          (suffix "")
+          (bigger-suffixes gmail-encoding-number-to-string-approx-suffixes))
+      (if (< n 0)
+          (setq n (- n)
+                sign "-"))
+      (while (and (>= n 9999.5) (consp bigger-suffixes))
+        (setq n (/ n b) ; TODO: this is rounding down; nearest would be better
+              suffix (car bigger-suffixes)
+              bigger-suffixes (cdr bigger-suffixes)))
+      (concat sign
+                  (if (integerp n)
+                  (int-to-string n)
+                (number-to-string (floor n)))
+              suffix))))
+
 (provide 'gmail-encoding)

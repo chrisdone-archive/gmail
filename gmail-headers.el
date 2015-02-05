@@ -21,9 +21,9 @@
   (plist-get
    (find nil assoc
          :test (lambda (_ header)
-                 (string= key
+                 (string= (downcase key)
                           ;;
-                          (plist-get header :name))))
+                          (downcase (plist-get header :name)))))
    :value))
 
 (provide 'gmail-headers)

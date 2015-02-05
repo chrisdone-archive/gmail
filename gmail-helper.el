@@ -29,12 +29,11 @@
                                     "gmail.py"
                                     (format "%S" (list cmd)))
                (buffer-string))))
-    (when nil
-      (with-current-buffer "*scratch*"
-        (insert (format "%S =>" cmd)
-                "\n"
-                out
-                "\n\n")))
+    (with-current-buffer "*scratch*"
+      (insert (format "%S =>" cmd)
+              "\n"
+              out
+              "\n\n"))
     (car (read out))))
 
 (defun gmail-helper-run-many (cmds)
@@ -114,5 +113,17 @@
 (defun gmail-helper-profile-get ()
   "Get the user's profile."
   (gmail-helper-run (list "profile" "get")))
+
+(defun gmail-helper-send (sender to subject body inreplyto references thread-id)
+  "Get the user's profile."
+  (gmail-helper-run
+   (list "send"
+         sender
+         to
+         subject
+         body
+         (or in-reply-to "")
+         (or references "")
+         (or thread-id ""))))
 
 (provide 'gmail-helper)

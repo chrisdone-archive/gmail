@@ -21,6 +21,15 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run
 import json
+import base64
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+import mimetypes
+import os
+from apiclient import errors
 
 # Gmail API boilerplate
 
@@ -34,6 +43,26 @@ if credentials is None or credentials.invalid:
   credentials = run(flow, STORAGE, http=http)
 http = credentials.authorize(http)
 gmail_service = build('gmail', 'v1', http=http)
+
+# Helpers
+
+def send_message(service, user_id, message):
+  try:
+    message = (service.users().messages().send(userId=user_id, body=message)
+               .execute())
+    print 'Message Id: %s' % message['id']
+    return message
+  except errors.HttpError, error:
+    print 'An error occurred: %s' % error
+
+def create_message(sender, to, subject, inreplyto, references, message_text,tid):
+  message = MIMEText(message_text)
+  message['To'] = to
+  message['From'] = sender
+  message['Subject'] = subject
+  message['In-Reply-To'] = inreplyto
+  message['References'] = references
+  return {'raw': base64.urlsafe_b64encode(message.as_string()),'threadId':tid}
 
 # Workaround Python's ineptitude
 
@@ -95,4 +124,15 @@ for cmd in cmds:
     if args[1] == 'list':
       labels = gmail_service.users().labels().list(userId='me').execute()
       print_unicode(dumps(labels))
+  if args[0] == 'send':
+    sender = args[1]
+    to = args[2]
+    subject = args[3]
+    body = args[4]
+    inreplyto = args[5]
+    references = args[6]
+    tid = args[7]
+    msg = create_message(sender,to,subject,inreplyto,references,body,tid)
+    print_unicode(dumps(send_message(gmail_service,'me',msg)))
+
 print ")"

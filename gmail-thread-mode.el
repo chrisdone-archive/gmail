@@ -41,6 +41,35 @@
 (define-key gmail-thread-mode-map (kbd "d") 'gmail-thread-mode-delete)
 (define-key gmail-thread-mode-map (kbd "n") 'gmail-thread-mode-next)
 (define-key gmail-thread-mode-map (kbd "p") 'gmail-thread-mode-prev)
+(define-key gmail-thread-mode-map (kbd "c") 'gmail-thread-mode-reply)
+
+(defun gmail-thread-mode-reply ()
+  (interactive)
+  (let* ((thread-messages (gmail-helper-threads-get gmail-thread-mode-thread-id 'full))
+         (thread (car (plist-get thread-messages :messages)))
+         (thread-payload (plist-get thread :payload))
+         (thread-headers (plist-get thread-payload :headers))
+         (thread-message-id (gmail-headers-lookup "Message-Id" thread-headers))
+
+         (subject (gmail-headers-lookup "Subject" thread-headers))
+         (message-id (get-text-property (point) 'gmail-thread-mode-message-id))
+         (message (car (remove-if-not (lambda (message)
+                                        (string= message-id (plist-get message :id)))
+                                      (plist-get thread-messages :messages))))
+         (message-payload (plist-get message :payload))
+         (message-headers (plist-get message-payload :headers))
+         (from (gmail-headers-lookup "From" message-headers))
+         (message-message-id (gmail-headers-lookup "Message-Id" message-headers)))
+    (switch-to-buffer (get-buffer-create "*gmail-compose*"))
+    (unless (eq major-mode 'gmail-compose-mode)
+      (gmail-compose-mode))
+    (delete-region (point-min) (point-max))
+    (insert "References: " thread-message-id "\n")
+    (insert "In-Reply-To: " (or message-message-id thread-message-id) "\n")
+    (insert "Subject: " subject "\n")
+    (insert "To: " from "\n")
+    (insert "From: Christopher Done <chrisdone@gmail.com>\n")
+    (insert "\n")))
 
 (defun gmail-thread-mode-next ()
   (interactive)
@@ -54,7 +83,8 @@
              (point))
           (when (cadr os)
             (goto-char (overlay-start (cadr os))))
-        (goto-char (overlay-start (car os)))))))
+        (goto-char (overlay-start (car os))))
+      (recenter-top-bottom 0))))
 
 (defun gmail-thread-mode-prev ()
   (interactive)
@@ -68,7 +98,8 @@
              (point))
           (when (cadr os)
             (goto-char (overlay-start (cadr os))))
-        (goto-char (overlay-start (car os)))))))
+        (goto-char (overlay-start (car os))))
+      (recenter-top-bottom 0))))
 
 (defun gmail-thread-mode-delete ()
   (interactive)
@@ -200,7 +231,7 @@
                       (format-time-string gmail-search-mode-date-format date)
                       'face 'gmail-search-mode-date-face)
                      "\n"
-                     "To "
+                     "To: "
                      (propertize to
                                  'face
                                  'gmail-search-mode-from-face)
@@ -262,6 +293,7 @@
         (if unread
             (overlay-put o 'face 'gmail-thread-mode-unread-face)
           (overlay-put o 'face 'gmail-thread-mode-read-face)))
+      (gmail-thread-mode-attachments payload)
       (insert "\n")
       (let ((start (point)))
         (insert (propertize (gmail-thread-mode-plaintext payload)
@@ -270,6 +302,39 @@
         (decode-coding-region start (point)
                               'utf-8)
         (gmail-thread-mode-fill-lines start (point))))))
+
+(defun gmail-thread-mode-attachments (payload)
+  "List out the attachments of the email."
+  (if (plist-get payload :parts)
+      (mapconcat #'gmail-thread-mode-attachment
+                 (plist-get payload :parts)
+                 "")
+    (gmail-thread-mode-attachment payload)))
+
+(defun gmail-thread-mode-attachment (part)
+  (let ((mime-type (plist-get part :mimeType)))
+    (cond
+     ((string-prefix-p "multipart/" mime-type)
+      (gmail-thread-mode-attachments part))
+     ((not (string= "" (plist-get part :filename)))
+      (insert "Attachment: "
+              (plist-get part :filename)
+              " ("
+              (file-size-human-readable (plist-get (plist-get part :body) :size) t)
+              ")"
+              "\n")))))
+
+(defun gmail-thread-mode-plaintext-part (part)
+  (let ((mime-type (plist-get part :mimeType)))
+    (cond
+     ((string-prefix-p "text/plain" mime-type)
+      (gmail-encoding-decode-base64
+       (plist-get (plist-get part :body) :data)))
+     ((string-prefix-p "multipart/" mime-type)
+      (gmail-thread-mode-plaintext part))
+     ((string-prefix-p "text/html" mime-type)
+      "")
+     (t ""))))
 
 (defun gmail-thread-mode-plaintext (payload)
   "Get the plain text from a message payload."

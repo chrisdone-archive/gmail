@@ -113,7 +113,14 @@
 (define-key gmail-search-mode-map (kbd "n") 'gmail-search-mode-next)
 (define-key gmail-search-mode-map (kbd "i") 'gmail-search-mode-inbox)
 (define-key gmail-search-mode-map (kbd "p") 'gmail-search-mode-prev)
+(define-key gmail-search-mode-map (kbd "c") 'gmail-compose)
 (define-key gmail-search-mode-map (kbd "RET") 'gmail-search-mode-open-thread)
+
+(defun gmail-compose ()
+  (interactive)
+  (switch-to-buffer (get-buffer-create "*gmail-compose*"))
+  (unless (eq major-mode 'gmail-compose-mode)
+    (gmail-compose-mode)))
 
 (defun gmail-search-mode-inbox ()
   (interactive)
