@@ -43,27 +43,29 @@ Operates on the active region or the whole buffer."
 
 (defun gmail-encoding-decode-base64 (string.)
   "Decode a base64-encoded email and strip off DOS newlines."
-  (let ((string (replace-regexp-in-string
-                 "_" "/"
-                 (replace-regexp-in-string "-" "+" string.))))
-    (replace-regexp-in-string
-     "\r" ""
-     (condition-case error
-         (base64-decode-string string)
-       (error
-        (catch 'done
-          (when (string-match
-                 "\\([A-Za-z0-9+/ \t\r\n]+\\)=*" string)
-            (let ((tail (substring string (match-end 0)))
-                  (string (match-string 1 string)))
-              (dotimes (i 3)
-                (condition-case nil
-                    (progn
-                      (setq string (base64-decode-string string))
-                      (throw 'done (concat string tail)))
-                  (error))
-                (setq string (concat string "=")))))
-          (signal (car error) (cdr error))))))))
+  (decode-coding-string
+   (let ((string (replace-regexp-in-string
+                  "_" "/"
+                  (replace-regexp-in-string "-" "+" string.))))
+     (replace-regexp-in-string
+      "\r" ""
+      (condition-case error
+          (base64-decode-string string)
+        (error
+         (catch 'done
+           (when (string-match
+                  "\\([A-Za-z0-9+/ \t\r\n]+\\)=*" string)
+             (let ((tail (substring string (match-end 0)))
+                   (string (match-string 1 string)))
+               (dotimes (i 3)
+                 (condition-case nil
+                     (progn
+                       (setq string (base64-decode-string string))
+                       (throw 'done (concat string tail)))
+                   (error))
+                 (setq string (concat string "=")))))
+           (signal (car error) (cdr error)))))))
+   'utf-8 t))
 
 (defconst gmail-encoding-number-to-string-approx-suffixes
   '("k" "M" "G" "T" "P" "E" "Z" "Y"))
@@ -89,9 +91,24 @@ the base multiplier."
               suffix (car bigger-suffixes)
               bigger-suffixes (cdr bigger-suffixes)))
       (concat sign
-                  (if (integerp n)
+              (if (integerp n)
                   (int-to-string n)
                 (number-to-string (floor n)))
               suffix))))
+
+(defun gmail-encoding-html->plain (html)
+  "Strip out the tags from the given HTML.
+
+Forgive me for my sins"
+  (replace-regexp-in-string
+   "\\(^ \\|\u00A0\\)" ""
+   (replace-regexp-in-string
+    "[ ]+" " "
+    (gmail-encoding-decode-html
+     (replace-regexp-in-string
+      "\\(<.*?>\\)" ""
+      (replace-regexp-in-string
+       "<\\(br\\|p\\).*?>" "\n"
+       (replace-regexp-in-string "\n" " " html)))))))
 
 (provide 'gmail-encoding)

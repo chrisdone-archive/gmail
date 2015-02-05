@@ -19,11 +19,14 @@
 
 (defun gmail-headers-lookup (key assoc)
   (plist-get
-   (find nil assoc
-         :test (lambda (_ header)
-                 (string= (downcase key)
-                          ;;
-                          (downcase (plist-get header :name)))))
+   (find-if
+    (lambda (header)
+      (eq t
+          (compare-strings key nil nil
+                           (plist-get header :name)
+                           nil nil
+                           t)))
+    assoc)
    :value))
 
 (provide 'gmail-headers)

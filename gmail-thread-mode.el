@@ -296,11 +296,9 @@
       (gmail-thread-mode-attachments payload)
       (insert "\n")
       (let ((start (point)))
-        (insert (propertize (gmail-thread-mode-plaintext payload)
+        (insert (propertize (gmail-thread-mode-mixed-plaintext payload)
                             'face 'gmail-search-mode-body-face)
                 "\n\n")
-        (decode-coding-region start (point)
-                              'utf-8)
         (gmail-thread-mode-fill-lines start (point))))))
 
 (defun gmail-thread-mode-attachments (payload)
@@ -324,37 +322,40 @@
               ")"
               "\n")))))
 
-(defun gmail-thread-mode-plaintext-part (part)
-  (let ((mime-type (plist-get part :mimeType)))
-    (cond
-     ((string-prefix-p "text/plain" mime-type)
-      (gmail-encoding-decode-base64
-       (plist-get (plist-get part :body) :data)))
-     ((string-prefix-p "multipart/" mime-type)
-      (gmail-thread-mode-plaintext part))
-     ((string-prefix-p "text/html" mime-type)
-      "")
-     (t ""))))
-
-(defun gmail-thread-mode-plaintext (payload)
+(defun gmail-thread-mode-mixed-plaintext (payload)
   "Get the plain text from a message payload."
-  (if (plist-get payload :parts)
-      (mapconcat #'gmail-thread-mode-plaintext-part
-                 (plist-get payload :parts)
-                 "")
-    (gmail-thread-mode-plaintext-part payload)))
+  (let ((parts (plist-get payload :parts)))
+    (if parts
+        (mapconcat #'gmail-thread-mode-part-plaintext
+                   parts
+                   "")
+      (gmail-thread-mode-plain/html-plaintext payload))))
 
-(defun gmail-thread-mode-plaintext-part (part)
+(defun gmail-thread-mode-part-plaintext (part)
+  (let ((mime-type (plist-get part :mimeType)))
+    (cond
+     ((string-prefix-p "multipart/alternative" mime-type)
+      (mapconcat (lambda (part)
+                   (cond
+                    ((string-prefix-p "text/plain" (plist-get part :mimeType))
+                     (gmail-encoding-decode-base64
+                      (plist-get (plist-get part :body) :data)))
+                    (t "")))
+                 (plist-get part :parts)
+                 ""))
+     (t (gmail-thread-mode-plain/html-plaintext part)))))
+
+(defun gmail-thread-mode-plain/html-plaintext (part)
   (let ((mime-type (plist-get part :mimeType)))
     (cond
      ((string-prefix-p "text/plain" mime-type)
       (gmail-encoding-decode-base64
        (plist-get (plist-get part :body) :data)))
-     ((string-prefix-p "multipart/" mime-type)
-      (gmail-thread-mode-plaintext part))
      ((string-prefix-p "text/html" mime-type)
-      "")
-     (t ""))))
+      (gmail-encoding-html->plain
+       (gmail-encoding-decode-base64
+        (plist-get (plist-get part :body) :data))))
+     (t (error "Expected text/plain or text/html: %S" mime-type)))))
 
 (defun gmail-thread-mode-fill-lines (start end)
   "Fill lines longer than 80 columns, to make it more readable."
